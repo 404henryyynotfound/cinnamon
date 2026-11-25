@@ -1,6 +1,6 @@
 #!/bin/sh
 # Strict-confinement wrapper for cinnamon.
-BASE=/opt/cinnamon
+BASE="$SNAP/opt/cinnamon"
 export ELECTRON_DISABLE_SANDBOX=1
 export CINNAMON_HOME="${SNAP_USER_COMMON:-$SNAP_USER_DATA}/cinnamon"
 export LD_LIBRARY_PATH="$BASE${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"

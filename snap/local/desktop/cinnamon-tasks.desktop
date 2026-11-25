@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=cinnamon
-Comment=Local-first AI task manager
+Comment=Local-first computer task manager
 Exec=cinnamon-tasks
 Icon=${SNAP}/meta/gui/icon.png
 Terminal=false
