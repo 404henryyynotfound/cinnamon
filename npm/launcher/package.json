@@ -1,13 +1,18 @@
 {
   "name": "cinnamon-gui",
-  "version": "1.0.0",
-  "description": "Launcher for the cinnamon desktop task manager",
+  "version": "1.0.1",
+  "description": "Launcher and offline CLI for the cinnamon computer task manager",
   "bin": {
     "cinnamon": "bin/cinnamon.js",
-    "cinnamon-gui": "bin/cinnamon.js"
+    "cinnamon-gui": "bin/cinnamon.js",
+    "cinnamon-cli": "cli/bin/cinnamon-cli.js",
+    "cinn": "cli/bin/cinnamon-cli.js"
   },
   "files": [
     "bin",
+    "cli/package.json",
+    "cli/bin",
+    "cli/lib",
     "README.md"
   ],
   "scripts": {
@@ -19,7 +24,8 @@
   "keywords": [
     "cinnamon",
     "task-manager",
-    "productivity",
+    "system-monitor",
+    "cli",
     "desktop"
   ],
   "license": "MIT",

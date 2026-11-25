@@ -10,7 +10,7 @@ The package description in `package.json` still says "desktop task manager"; in 
 - **More than ending tasks** — pause (`SIGSTOP`) and resume (`SIGCONT`) processes, interrupt (`SIGINT`) them, ask them to shut down (`SIGTERM`), force-stop (`SIGKILL`), change niceness (`setPriority`), inspect process details and Linux `/proc/<pid>/fd` open files, and pin processes you want to follow. Destructive actions always require confirmation from shared metadata and are logged locally.
 - **Pinned processes** — followed PIDs persist in local storage, show live status when present and are flagged as "not running" when they leave a sample.
 - **Process reports** — deterministic JSON, CSV and Markdown reports with top CPU/memory, groups by user and state, totals and local AI findings. The Processes view and command palette can export the current table as CSV or Markdown.
-- **Terminal CLI** — the zero-dependency `cinnamon-cli` package (`cinnamon-cli`, alias `cinn`) brings `ps`, `top`, `kill`, `renice`, `pause`, `resume`, `report` and `diagnose` to any terminal. It is offline and cross-platform: `/proc` on Linux, safely parsed `ps` elsewhere, with mandatory `--yes` confirmation for process changes.
+- **Terminal CLI** — the zero-dependency `cinnamon-cli` command (`cinnamon-cli`, alias `cinn`), bundled in `cinnamon-gui`, brings `ps`, `top`, `kill`, `renice`, `pause`, `resume`, `report` and `diagnose` to any terminal. It is offline and cross-platform: `/proc` on Linux, safely parsed `ps` elsewhere, with mandatory `--yes` confirmation for process changes.
 - **Inline SVG performance graphs** — CPU, memory, disk and network history, process bars, a memory donut and a weekday/hour activity heatmap. No chart library, no CDN.
 - **Explainable local AI diagnostics** — deterministic findings for CPU hogs, runaway processes, memory and disk pressure, network spikes, zombies, load and long uptime, each with evidence and suggested actions.
 - **Optional BYOK AI** — ask an OpenAI-compatible endpoint of your choosing for a second opinion. Requests happen only when you press **Ask AI**, use your own key, have a 10 second timeout, and always fall back to the local diagnosis on failure.
@@ -20,7 +20,7 @@ The package description in `package.json` still says "desktop task manager"; in 
 
 ## Install
 
-Pick the route that suits your machine. The display name is always lowercase `cinnamon`; the GUI npm package is `cinnamon-gui`, the CLI package is `cinnamon-cli`, and the Snap name is `cinnamon-tasks`. The [website](site/index.html) has a **Download for every platform** section with direct latest-release links.
+Pick the route that suits your machine. The display name is always lowercase `cinnamon`; the npm package `cinnamon-gui` installs both the GUI launcher and the `cinnamon-cli` command, and the Snap name is `cinnamon-tasks`. The [website](site/index.html) has a **Download for every platform** section with direct latest-release links.
 
 ```bash
 # npm launcher: detects OS/arch, verifies SHA-256 and starts the app
@@ -29,7 +29,7 @@ cinnamon
 cinnamon --dry-run     # show the selected asset without downloading
 
 # terminal CLI: offline process inspection and control
-npm i -g cinnamon-cli
+npm i -g cinnamon-gui
 cinnamon-cli ps --sort cpu --limit 10
 cinnamon-cli report --format markdown
 cinnamon-cli kill 4242 SIGTERM --yes
