@@ -81,7 +81,7 @@
   const list = document.getElementById('release-list');
   const fallback = [{
     name: 'v1.0.0',
-    body: '- Live process list with CPU and memory usage\n- Safe kill and renice controls with confirmation\n- Inline SVG performance graphs\n- Explainable local AI diagnostics and optional BYOK AI\n- Watcher rules and action history\n- In-app and GitHub changelogs'
+    body: '- Live process list with CPU and memory usage\n- Pause, resume, interrupt, terminate and kill controls with confirmation\n- Priority changes, open-file inspection and pinned processes\n- Flat and parent/child tree views with CSV and Markdown exports\n- Inline SVG performance graphs\n- Explainable local AI diagnostics and optional BYOK AI\n- Watcher rules, reports and action history\n- In-app and GitHub changelogs'
   }];
   function render(releases) {
     if (!list) return;

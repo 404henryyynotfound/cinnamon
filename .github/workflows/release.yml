@@ -61,7 +61,7 @@ jobs:
         if: matrix.arch == 'arm64'
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
       - run: npm install
-      - run: npx electron-builder --linux --${{ matrix.arch }}
+      - run: npx electron-builder --linux --${{ matrix.arch }} --publish never
       - name: Normalize artifacts
         run: |
           mkdir -p release-assets
