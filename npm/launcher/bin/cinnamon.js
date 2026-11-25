@@ -13,19 +13,41 @@ const { https } = require('https');
 const VERSION = require('../package.json').version;
 const REPO = '404henryyynotfound/cinnamon';
 
+// Environment overrides make asset selection testable on any host without
+// downloading anything. They are also useful for scripting a different target.
+const PLATFORM_ALIASES = Object.freeze({
+  linux: 'linux', linux2: 'linux',
+  darwin: 'macos', mac: 'macos', macos: 'macos', osx: 'macos',
+  win32: 'windows', win: 'windows', windows: 'windows'
+});
+const ARCH_ALIASES = Object.freeze({
+  x64: 'x64', x86_64: 'x64', amd64: 'x64',
+  arm64: 'arm64', aarch64: 'arm64'
+});
+
+function alias(value, map, fallback) {
+  const key = String(value || '').toLowerCase();
+  return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : fallback;
+}
+
 function platformName() {
-  switch (process.platform) {
-    case 'linux': return 'linux';
-    case 'darwin': return 'macos';
-    case 'win32': return 'windows';
-    default: return process.platform;
+  if (process.env.CINNAMON_PLATFORM) {
+    return alias(process.env.CINNAMON_PLATFORM, PLATFORM_ALIASES, process.env.CINNAMON_PLATFORM);
   }
+  return alias(process.platform, PLATFORM_ALIASES, process.platform);
 }
 
 function archName() {
-  if (process.arch === 'x64' || process.arch === 'x86_64') return 'x64';
-  if (process.arch === 'arm64' || process.arch === 'aarch64') return 'arm64';
-  return process.arch;
+  if (process.env.CINNAMON_ARCH) {
+    return alias(process.env.CINNAMON_ARCH, ARCH_ALIASES, process.env.CINNAMON_ARCH);
+  }
+  return alias(process.arch, ARCH_ALIASES, process.arch);
+}
+
+function requestedVersion(argv) {
+  const fromArg = argv.find((arg) => /^\d+\.\d+\.\d+$/.test(arg));
+  const value = fromArg || process.env.CINNAMON_VERSION || VERSION;
+  return /^\d+\.\d+\.\d+$/.test(value) ? value : VERSION;
 }
 
 function assetName() {
@@ -142,9 +164,9 @@ function findLauncher(dir) {
   return chosen;
 }
 
-async function main(argv) {
+async function main(argv = []) {
   if (argv.includes('--version')) { console.log(VERSION); return 0; }
-  const requested = (argv.find((a) => /^\d+\.\d+\.\d+$/.test(a)) || VERSION);
+  const requested = requestedVersion(argv);
   const osName = platformName();
   const arch = archName();
   const asset = assetName();
@@ -173,9 +195,22 @@ async function main(argv) {
   return runCommand(launcher, argv.filter((a) => !a.startsWith('--')));
 }
 
-main(process.argv.slice(2)).then((code) => {
-  process.exitCode = code;
-}).catch((error) => {
-  process.stderr.write(`cinnamon: ${error && error.message ? error.message : error}\n`);
-  process.exitCode = 1;
-});
+module.exports = {
+  VERSION,
+  platformName,
+  archName,
+  assetName,
+  baseUrl,
+  cacheRoot,
+  main,
+  requestedVersion
+};
+
+if (require.main === module) {
+  main(process.argv.slice(2)).then((code) => {
+    process.exitCode = code;
+  }).catch((error) => {
+    process.stderr.write(`cinnamon: ${error && error.message ? error.message : error}\n`);
+    process.exitCode = 1;
+  });
+}

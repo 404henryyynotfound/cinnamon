@@ -10,6 +10,7 @@ The package description in `package.json` still says "desktop task manager"; in 
 - **More than ending tasks** — pause (`SIGSTOP`) and resume (`SIGCONT`) processes, interrupt (`SIGINT`) them, ask them to shut down (`SIGTERM`), force-stop (`SIGKILL`), change niceness (`setPriority`), inspect process details and Linux `/proc/<pid>/fd` open files, and pin processes you want to follow. Destructive actions always require confirmation from shared metadata and are logged locally.
 - **Pinned processes** — followed PIDs persist in local storage, show live status when present and are flagged as "not running" when they leave a sample.
 - **Process reports** — deterministic JSON, CSV and Markdown reports with top CPU/memory, groups by user and state, totals and local AI findings. The Processes view and command palette can export the current table as CSV or Markdown.
+- **Terminal CLI** — the zero-dependency `cinnamon-cli` package (`cinnamon-cli`, alias `cinn`) brings `ps`, `top`, `kill`, `renice`, `pause`, `resume`, `report` and `diagnose` to any terminal. It is offline and cross-platform: `/proc` on Linux, safely parsed `ps` elsewhere, with mandatory `--yes` confirmation for process changes.
 - **Inline SVG performance graphs** — CPU, memory, disk and network history, process bars, a memory donut and a weekday/hour activity heatmap. No chart library, no CDN.
 - **Explainable local AI diagnostics** — deterministic findings for CPU hogs, runaway processes, memory and disk pressure, network spikes, zombies, load and long uptime, each with evidence and suggested actions.
 - **Optional BYOK AI** — ask an OpenAI-compatible endpoint of your choosing for a second opinion. Requests happen only when you press **Ask AI**, use your own key, have a 10 second timeout, and always fall back to the local diagnosis on failure.
@@ -19,12 +20,19 @@ The package description in `package.json` still says "desktop task manager"; in 
 
 ## Install
 
-Pick the route that suits your machine. The display name is always lowercase `cinnamon`; the npm package is `cinnamon-gui` and the Snap name is `cinnamon-tasks`.
+Pick the route that suits your machine. The display name is always lowercase `cinnamon`; the GUI npm package is `cinnamon-gui`, the CLI package is `cinnamon-cli`, and the Snap name is `cinnamon-tasks`. The [website](site/index.html) has a **Download for every platform** section with direct latest-release links.
 
 ```bash
-# npm launcher (downloads the matching release artifact for your platform)
+# npm launcher: detects OS/arch, verifies SHA-256 and starts the app
 npm i -g cinnamon-gui
 cinnamon
+cinnamon --dry-run     # show the selected asset without downloading
+
+# terminal CLI: offline process inspection and control
+npm i -g cinnamon-cli
+cinnamon-cli ps --sort cpu --limit 10
+cinnamon-cli report --format markdown
+cinnamon-cli kill 4242 SIGTERM --yes
 
 # Debian package downloaded from the releases page (arm64 for Raspberry Pi)
 sudo apt install ./cinnamon-linux-x64.deb
@@ -34,7 +42,15 @@ sudo snap install cinnamon-tasks
 cinnamon-tasks
 ```
 
-Release archives are named `cinnamon-${os}-${arch}.${ext}` (for example `cinnamon-linux-x64.deb` or `cinnamon-linux-arm64.tar.gz`).
+Tagged releases publish assets for every supported combination, each with a `.sha256` companion:
+
+| Platform | x64 | arm64 |
+| --- | --- | --- |
+| Linux | `.deb`, `.tar.gz` | `.deb`, `.tar.gz` |
+| macOS | `.dmg`, `.zip` | `.dmg`, `.zip` |
+| Windows | `.exe` (NSIS), `.zip` | `.exe` (NSIS), `.zip` |
+
+Release archives follow `cinnamon-${os}-${arch}.${ext}`, for example `cinnamon-linux-x64.deb`, `cinnamon-macos-arm64.dmg` or `cinnamon-windows-arm64.zip`. All downloads come from `https://github.com/404henryyynotfound/cinnamon/releases/latest`. Pi-Apps definitions are available for Raspberry Pi users.
 
 ## Develop
 
@@ -42,8 +58,10 @@ Release archives are named `cinnamon-${os}-${arch}.${ext}` (for example `cinnamo
 cd cinnamon
 npm install          # dev dependencies only: Electron and electron-builder
 npm start            # launch the app from source
-npm test             # pure Node tests, no Electron required
-npm run check        # syntax and packaging-config check
+npm test                       # pure Node tests, no Electron required
+npm run check                  # syntax and packaging-config check
+npm test --prefix npm/launcher # launcher asset-selection tests
+npm test --prefix npm/cli      # CLI tests with injected processes
 npm run dist:linux-x64
 npm run dist:linux-arm64
 ```

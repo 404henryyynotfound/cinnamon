@@ -1,0 +1,38 @@
+{
+  "name": "cinnamon-cli",
+  "version": "1.0.0",
+  "description": "Offline, cross-platform command-line companion for the cinnamon computer task manager",
+  "bin": {
+    "cinnamon-cli": "bin/cinnamon-cli.js",
+    "cinn": "bin/cinnamon-cli.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node bin/cinnamon-cli.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "cinnamon",
+    "cli",
+    "task-manager",
+    "processes",
+    "system-monitor",
+    "offline"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/404henryyynotfound/cinnamon.git"
+  },
+  "homepage": "https://github.com/404henryyynotfound/cinnamon",
+  "publishConfig": {
+    "access": "public"
+  }
+}

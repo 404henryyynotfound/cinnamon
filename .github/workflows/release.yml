@@ -41,10 +41,14 @@ jobs:
           node-version: 22
       - run: npm install
       - run: npm test
+      - run: npm test --prefix ./npm/launcher
+      - run: npm test --prefix ./npm/cli
 
   linux:
     runs-on: ${{ matrix.runner }}
     needs: version
+    env:
+      ARCH: ${{ matrix.arch }}
     strategy:
       matrix:
         include:
@@ -63,17 +67,20 @@ jobs:
       - run: npm install
       - run: npx electron-builder --linux --${{ matrix.arch }} --publish never
       - name: Normalize artifacts
+        shell: bash
         run: |
+          set -euo pipefail
+          shopt -s nullglob
           mkdir -p release-assets
-          for file in dist/cinnamon-linux-*.tar.gz dist/cinnamon-linux-*.deb; do
-            [ -e "$file" ] || continue
-            name="$(basename "$file")"
-            case "$name" in
-              *-amd64.*) name="${name/-amd64./-${{ matrix.arch }}.}" ;;
-              *-x86_64.*) name="${name/-x86_64./-${{ matrix.arch }}.}" ;;
-              *-aarch64.*) name="${name/-aarch64./-${{ matrix.arch }}.}" ;;
-            esac
-            cp "$file" "release-assets/$name"
+          debs=(dist/*.deb)
+          tars=(dist/*.tar.gz)
+          if [ ${#debs[@]} -eq 0 ] || [ ${#tars[@]} -eq 0 ]; then
+            echo "Expected both a .deb and a .tar.gz artifact" >&2
+            exit 1
+          fi
+          cp "${debs[0]}" "release-assets/cinnamon-linux-${ARCH}.deb"
+          cp "${tars[0]}" "release-assets/cinnamon-linux-${ARCH}.tar.gz"
+          for name in "cinnamon-linux-${ARCH}.deb" "cinnamon-linux-${ARCH}.tar.gz"; do
             (cd release-assets && sha256sum "$name" > "$name.sha256")
           done
           if [ -f pi-apps/cinnamon.zip ]; then
@@ -83,6 +90,142 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
+          path: release-assets/*
+
+  macos:
+    runs-on: ${{ matrix.runner }}
+    needs: version
+    env:
+      ARCH: ${{ matrix.arch }}
+    strategy:
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx electron-builder --mac --${{ matrix.arch }} --publish never
+      - name: Normalize artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p release-assets
+          for ext in dmg zip; do
+            files=(dist/*."$ext")
+            if [ ${#files[@]} -eq 0 ]; then
+              echo "Expected a .$ext artifact" >&2
+              exit 1
+            fi
+            name="cinnamon-macos-${ARCH}.${ext}"
+            cp "${files[0]}" "release-assets/$name"
+            (cd release-assets && shasum -a 256 "$name" > "$name.sha256")
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: release-assets/*
+
+  windows_x64:
+    runs-on: windows-latest
+    needs: version
+    env:
+      ARCH: x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx electron-builder --win --x64 --publish never
+      - name: Normalize artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          foreach ($ext in @('exe', 'zip')) {
+            $file = Get-ChildItem -Path dist -Filter "*.$ext" -File | Select-Object -First 1
+            if (-not $file) { throw "Expected a .$ext artifact" }
+            $name = "cinnamon-windows-${env:ARCH}.$ext"
+            $target = Join-Path 'release-assets' $name
+            Copy-Item -LiteralPath $file.FullName -Destination $target
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()
+            [System.IO.File]::WriteAllText((Join-Path 'release-assets' "$name.sha256"), "$hash  $name`n")
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: release-assets/*
+
+  windows_arm64:
+    runs-on: windows-11-arm
+    needs: version
+    env:
+      ARCH: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx electron-builder --win --arm64 --publish never
+      - name: Normalize artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          foreach ($ext in @('exe', 'zip')) {
+            $file = Get-ChildItem -Path dist -Filter "*.$ext" -File | Select-Object -First 1
+            if (-not $file) { throw "Expected a .$ext artifact" }
+            $name = "cinnamon-windows-${env:ARCH}.$ext"
+            $target = Join-Path 'release-assets' $name
+            Copy-Item -LiteralPath $file.FullName -Destination $target
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()
+            [System.IO.File]::WriteAllText((Join-Path 'release-assets' "$name.sha256"), "$hash  $name`n")
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-arm64
+          path: release-assets/*
+
+  # windows-11-arm is not available to every repository/plan. If it cannot
+  # produce the ARM64 build, cross-build the same artifacts on an x64 runner.
+  windows_arm64_fallback:
+    if: ${{ always() && !cancelled() && needs.version.result == 'success' && needs.windows_arm64.result != 'success' }}
+    runs-on: windows-latest
+    needs: [version, windows_arm64]
+    env:
+      ARCH: arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npx electron-builder --win --arm64 --publish never
+      - name: Normalize artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          foreach ($ext in @('exe', 'zip')) {
+            $file = Get-ChildItem -Path dist -Filter "*.$ext" -File | Select-Object -First 1
+            if (-not $file) { throw "Expected a .$ext artifact" }
+            $name = "cinnamon-windows-${env:ARCH}.$ext"
+            $target = Join-Path 'release-assets' $name
+            Copy-Item -LiteralPath $file.FullName -Destination $target
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $target).Hash.ToLowerInvariant()
+            [System.IO.File]::WriteAllText((Join-Path 'release-assets' "$name.sha256"), "$hash  $name`n")
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-arm64
           path: release-assets/*
 
   npm:
@@ -99,15 +242,22 @@ jobs:
       - name: Align version with tag
         if: startsWith(github.ref_name, 'v')
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
+      - name: Version npm packages
+        if: startsWith(github.ref_name, 'v')
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version --prefix ./npm/launcher
+          npm version "$VERSION" --no-git-tag-version --allow-same-version --prefix ./npm/cli
       - name: Publish launcher
         if: ${{ env.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [[ "$GITHUB_REF_NAME" == v* ]]; then
-            npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version --prefix ./npm/launcher
-          fi
-          npm publish ./npm/launcher --access public || echo "Version already published; continuing"
+        run: npm publish ./npm/launcher --access public || echo "Version already published; continuing"
+      - name: Publish CLI
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./npm/cli --access public || echo "Version already published; continuing"
       - name: Skip notice
         if: ${{ env.NPM_TOKEN == '' }}
         run: echo "NPM_TOKEN not configured; skipping npm publish"
@@ -150,13 +300,43 @@ jobs:
         run: snapcraft upload --release=stable "${{ steps.snapcraft.outputs.snap }}"
 
   release:
+    if: >-
+      ${{
+        always() && !cancelled() &&
+        needs.version.result == 'success' &&
+        needs.linux.result == 'success' &&
+        needs.macos.result == 'success' &&
+        needs.windows_x64.result == 'success' &&
+        needs.snap.result == 'success' &&
+        (needs.windows_arm64.result == 'success' || needs.windows_arm64_fallback.result == 'success')
+      }}
     runs-on: ubuntu-latest
-    needs: [version, linux, snap]
+    needs: [version, linux, macos, windows_x64, windows_arm64, windows_arm64_fallback, snap]
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: release-assets
           merge-multiple: true
+      - name: Verify expected assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for asset in \
+            cinnamon-linux-x64.deb cinnamon-linux-x64.tar.gz \
+            cinnamon-linux-arm64.deb cinnamon-linux-arm64.tar.gz \
+            cinnamon-macos-x64.dmg cinnamon-macos-x64.zip \
+            cinnamon-macos-arm64.dmg cinnamon-macos-arm64.zip \
+            cinnamon-windows-x64.exe cinnamon-windows-x64.zip \
+            cinnamon-windows-arm64.exe cinnamon-windows-arm64.zip; do
+            for file in "$asset" "$asset.sha256"; do
+              if [ ! -f "release-assets/$file" ]; then
+                echo "Missing release asset: $file" >&2
+                missing=1
+              fi
+            done
+          done
+          if [ "$missing" -ne 0 ]; then exit 1; fi
       - name: Create or update GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -168,8 +348,9 @@ jobs:
             if gh release create "$TAG" --generate-notes --title "$TAG"; then break; fi
             sleep $((attempt * 5))
           done
+          mapfile -t ASSETS < <(find release-assets -type f -print)
           for attempt in 1 2 3; do
-            if gh release upload "$TAG" release-assets/* --clobber; then exit 0; fi
+            if gh release upload "$TAG" "${ASSETS[@]}" --clobber; then exit 0; fi
             sleep $((attempt * 5))
           done
           echo "Failed to upload release assets" >&2

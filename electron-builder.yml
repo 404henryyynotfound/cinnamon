@@ -3,6 +3,10 @@ productName: cinnamon
 executableName: cinnamon
 artifactName: cinnamon-${os}-${arch}.${ext}
 copyright: Copyright © 2026 cinnamon contributors
+description: cinnamon — a local-first computer task manager with live processes, graphs and local AI diagnostics
+# Builds are uploaded to GitHub releases by release.yml with the gh CLI,
+# never by electron-builder itself.
+publish: never
 directories:
   output: dist
 files:
@@ -27,7 +31,6 @@ linux:
         - arm64
   category: Utility
   maintainer: cinnamon contributors
-  description: Computer task manager with live processes, graphs and local AI diagnostics
 mac:
   target:
     - dmg

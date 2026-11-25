@@ -15,4 +15,4 @@ Deploy from the `cinnamon/` directory:
 npx surge ./site cinnamon-tasks.surge.sh
 ```
 
-The page fetches public GitHub releases for the changelog section and falls back to bundled notes offline.
+The page links directly to the latest tagged release assets for Linux, macOS and Windows (x64 and arm64), plus Snap, npm and Pi-Apps, and fetches public GitHub releases for the changelog section with bundled notes as an offline fallback.

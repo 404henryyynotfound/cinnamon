@@ -4,6 +4,20 @@ All notable changes to cinnamon, a local-first computer task manager, are docume
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Cross-platform tagged releases: Linux x64/arm64 `.deb` and `.tar.gz`, macOS x64/arm64 `.dmg` and `.zip`, and Windows x64/arm64 NSIS `.exe` and `.zip`, each with a `.sha256` companion and normalized asset names.
+- `cinnamon-cli`: a zero-dependency, offline terminal companion with `ps`, `top`, `kill`, `renice`, `pause`, `resume`, `report`, `diagnose`, `--version` and `--help`. PIDs, signals and priorities are validated and every process change requires `--yes`; Linux uses `/proc` and other platforms use safely parsed `ps`.
+- A **Download for every platform** section on the website with direct latest-release links, copy buttons, Snap, npm launcher/CLI and Pi-Apps routes.
+
+### Changed
+
+- The npm launcher reads overridable environment targets so `--dry-run` can verify all six OS/architecture asset selections without downloading.
+- Electron packaging now uses a single lowercase "computer task manager" description and never auto-publishes; the release job uploads only regular files with retries.
+- The bundled and source changelogs are kept in sync so offline release notes include these additions.
+
 ## [1.0.0] - 2026-11-25
 
 ### Added

@@ -24,20 +24,26 @@ test('parseSections canonicalizes headings and keeps nested items', () => {
   assert.deepEqual(changelog.parseSections(''), []);
 });
 
-test('parseChangelog reads the bundled 1.0.0 Keep-a-Changelog file', () => {
+test('parseChangelog reads the bundled Keep-a-Changelog file', () => {
   const releases = changelog.parseChangelog(BUNDLED);
-  assert.equal(releases.length, 1);
-  assert.equal(releases[0].version, '1.0.0');
-  assert.equal(releases[0].date, '2026-11-25');
-  assert.deepEqual(releases[0].sections.map((section) => section.name), ['Added', 'Changed', 'Fixed']);
-  assert.ok(releases[0].items.some((item) => /live process table/i.test(item.text)));
-  assert.ok(releases[0].items.some((item) => /BYOK/i.test(item.text)));
-  assert.ok(releases[0].items.some((item) => /SVG/i.test(item.text)));
-  assert.ok(releases[0].items.some((item) => /watch rules/i.test(item.text)));
-  assert.ok(releases[0].items.some((item) => /pinned processes/i.test(item.text)));
-  assert.ok(releases[0].items.some((item) => /CSV/i.test(item.text)));
+  const current = releases.find((release) => release.version === 'Unreleased');
+  const stable = releases.find((release) => release.version === '1.0.0');
+  assert.equal(releases.length, 2);
+  assert.ok(current);
+  assert.deepEqual(current.sections.map((section) => section.name), ['Added', 'Changed']);
+  assert.ok(current.items.some((item) => /cinnamon-cli/i.test(item.text)));
+  assert.ok(current.items.some((item) => /Cross-platform tagged releases/i.test(item.text)));
+  assert.ok(stable);
+  assert.equal(stable.date, '2026-11-25');
+  assert.deepEqual(stable.sections.map((section) => section.name), ['Added', 'Changed', 'Fixed']);
+  assert.ok(stable.items.some((item) => /live process table/i.test(item.text)));
+  assert.ok(stable.items.some((item) => /BYOK/i.test(item.text)));
+  assert.ok(stable.items.some((item) => /SVG/i.test(item.text)));
+  assert.ok(stable.items.some((item) => /watch rules/i.test(item.text)));
+  assert.ok(stable.items.some((item) => /pinned processes/i.test(item.text)));
+  assert.ok(stable.items.some((item) => /CSV/i.test(item.text)));
   assert.ok(releases.intro.includes('Keep a Changelog'));
-  assert.equal(releases[0].source, 'bundled');
+  assert.equal(stable.source, 'bundled');
 });
 
 test('parseChangelog sorts releases by date and version', () => {
@@ -66,7 +72,8 @@ test('fromGithubRelease converts release payloads into the same shape', () => {
 
 test('formatReleaseNotes renders sections, children and links', () => {
   const notes = changelog.formatReleaseNotes(changelog.parseChangelog(BUNDLED));
-  assert.match(notes, /^## 1\.0\.0 - 2026-11-25/);
+  assert.match(notes, /^## Unreleased/);
+  assert.match(notes, /## 1\.0\.0 - 2026-11-25/);
   assert.match(notes, /### Added/);
   assert.match(notes, /- Live process table/);
   assert.equal(changelog.formatReleaseNotes([], { max: 1 }), '');
@@ -79,7 +86,7 @@ test('mergeSources combines local and remote notes without duplicates', () => {
     changelog.fromGithubRelease({ tag_name: 'v1.1.0', published_at: '2026-12-02', body: '### Fixed\n- newer fix' })
   ];
   const merged = changelog.mergeSources(bundled, remote);
-  assert.equal(merged.length, 2);
+  assert.equal(merged.length, 3);
   const local = merged.find((release) => release.version === '1.0.0');
   assert.equal(local.source, 'bundled');
   assert.ok(local.items.some((item) => /live process table/i.test(item.text)));

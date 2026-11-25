@@ -19,11 +19,14 @@
     });
   }
 
-  document.querySelectorAll('[data-copy]').forEach((button) => {
+  document.querySelectorAll('[data-copy], [data-copy-href]').forEach((button) => {
     button.addEventListener('click', async () => {
-      const target = document.querySelector(button.getAttribute('data-copy'));
-      if (!target) return;
-      const text = target.textContent.trim();
+      const linked = button.getAttribute('data-copy-href');
+      const selector = button.getAttribute('data-copy');
+      const link = linked ? document.querySelector(linked) : null;
+      const target = selector ? document.querySelector(selector) : null;
+      const text = link && link.href ? link.href : target ? target.textContent.trim() : '';
+      if (!text) return;
       try {
         await navigator.clipboard.writeText(text);
       } catch (_) {

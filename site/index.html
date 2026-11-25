@@ -16,9 +16,9 @@
       <button class="nav-toggle" data-nav-toggle aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
       <nav id="primary-nav" data-nav aria-label="Primary">
         <a href="#install">Install</a>
+        <a href="#download">Download</a>
         <a href="#features">Features</a>
         <a href="#changelog">Changelog</a>
-        <a href="#download">Download</a>
       </nav>
     </div>
   </header>
@@ -31,7 +31,7 @@
           <h1>Know exactly what your <span class="accent">computer is doing</span></h1>
           <p class="lede">cinnamon puts every process, every resource graph, and every smart suggestion in one calm, fast window. Inspect it, understand it, and take control — safely.</p>
           <div class="actions">
-            <a class="btn primary" href="#install">Get cinnamon <span aria-hidden="true">→</span></a>
+            <a class="btn primary" href="#download">Get cinnamon <span aria-hidden="true">→</span></a>
             <a class="btn ghost" href="#features">See what it does</a>
           </div>
           <p class="note">Local-first. No account. No telemetry.</p>
@@ -63,7 +63,7 @@
         <div class="section-head">
           <p class="kicker">Get started</p>
           <h2>Install it your way</h2>
-          <p>One app, three package managers. Every download comes from a public GitHub release.</p>
+          <p>One app, four entry points. Every desktop download comes from a public GitHub release; the CLI and launcher also work everywhere Node.js runs.</p>
         </div>
         <div class="install-grid">
           <article class="cmd-card">
@@ -81,6 +81,85 @@ sudo apt install ./cinnamon.deb</code></pre>
             <div class="cmd-head"><span class="badge">snap</span><button class="copy" data-copy="#cmd-snap" aria-label="Copy snap command">Copy</button></div>
             <pre><code id="cmd-snap">sudo snap install cinnamon-tasks</code></pre>
             <p>Strictly confined and auto-updating through Ubuntu App Center.</p>
+          </article>
+          <article class="cmd-card">
+            <div class="cmd-head"><span class="badge">cli</span><button class="copy" data-copy="#cmd-cli" aria-label="Copy CLI command">Copy</button></div>
+            <pre><code id="cmd-cli">npm install -g cinnamon-cli</code></pre>
+            <p>Then run <code>cinnamon-cli ps</code>, <code>top</code>, <code>report</code> or <code>diagnose</code> from any terminal.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section download-section" id="download">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Every machine, every route</p>
+          <h2>Download for every platform</h2>
+          <p>Direct links to the latest tagged release for Linux, macOS and Windows — x64 and arm64, installers and archives. Every file has a published <code>.sha256</code> companion; append <code>.sha256</code> to any download URL to check it.</p>
+        </div>
+        <div class="platform-grid">
+          <article class="platform-card">
+            <div class="platform-head"><span class="platform-icon">▤</span><div><h3>Linux</h3><p>Debian packages and portable tarballs</p></div></div>
+            <ul class="download-list">
+              <li class="download-row"><a id="dl-linux-x64-deb" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-linux-x64.deb">x64 · .deb <span>↗</span></a><button class="copy" data-copy-href="#dl-linux-x64-deb" aria-label="Copy Linux x64 deb link">Copy</button></li>
+              <li class="download-row"><a id="dl-linux-x64-tar" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-linux-x64.tar.gz">x64 · .tar.gz <span>↗</span></a><button class="copy" data-copy-href="#dl-linux-x64-tar" aria-label="Copy Linux x64 tarball link">Copy</button></li>
+              <li class="download-row"><a id="dl-linux-arm64-deb" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-linux-arm64.deb">arm64 · .deb <span>↗</span></a><button class="copy" data-copy-href="#dl-linux-arm64-deb" aria-label="Copy Linux arm64 deb link">Copy</button></li>
+              <li class="download-row"><a id="dl-linux-arm64-tar" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-linux-arm64.tar.gz">arm64 · .tar.gz <span>↗</span></a><button class="copy" data-copy-href="#dl-linux-arm64-tar" aria-label="Copy Linux arm64 tarball link">Copy</button></li>
+            </ul>
+            <p class="platform-note">Raspberry Pi users can also install through <a href="https://github.com/Botspot/pi-apps/pull/3085">Pi-Apps</a>.</p>
+          </article>
+
+          <article class="platform-card">
+            <div class="platform-head"><span class="platform-icon">◈</span><div><h3>macOS</h3><p>Intel and Apple Silicon installers and archives</p></div></div>
+            <ul class="download-list">
+              <li class="download-row"><a id="dl-macos-x64-dmg" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-macos-x64.dmg">x64 · .dmg <span>↗</span></a><button class="copy" data-copy-href="#dl-macos-x64-dmg" aria-label="Copy macOS x64 dmg link">Copy</button></li>
+              <li class="download-row"><a id="dl-macos-x64-zip" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-macos-x64.zip">x64 · .zip <span>↗</span></a><button class="copy" data-copy-href="#dl-macos-x64-zip" aria-label="Copy macOS x64 zip link">Copy</button></li>
+              <li class="download-row"><a id="dl-macos-arm64-dmg" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-macos-arm64.dmg">arm64 · .dmg <span>↗</span></a><button class="copy" data-copy-href="#dl-macos-arm64-dmg" aria-label="Copy macOS arm64 dmg link">Copy</button></li>
+              <li class="download-row"><a id="dl-macos-arm64-zip" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-macos-arm64.zip">arm64 · .zip <span>↗</span></a><button class="copy" data-copy-href="#dl-macos-arm64-zip" aria-label="Copy macOS arm64 zip link">Copy</button></li>
+            </ul>
+            <p class="platform-note">Unsigned builds may need <code>Right-click → Open</code> the first time.</p>
+          </article>
+
+          <article class="platform-card">
+            <div class="platform-head"><span class="platform-icon">▣</span><div><h3>Windows</h3><p>NSIS installers and portable archives</p></div></div>
+            <ul class="download-list">
+              <li class="download-row"><a id="dl-windows-x64-exe" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-windows-x64.exe">x64 · .exe <span>↗</span></a><button class="copy" data-copy-href="#dl-windows-x64-exe" aria-label="Copy Windows x64 installer link">Copy</button></li>
+              <li class="download-row"><a id="dl-windows-x64-zip" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-windows-x64.zip">x64 · .zip <span>↗</span></a><button class="copy" data-copy-href="#dl-windows-x64-zip" aria-label="Copy Windows x64 zip link">Copy</button></li>
+              <li class="download-row"><a id="dl-windows-arm64-exe" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-windows-arm64.exe">arm64 · .exe <span>↗</span></a><button class="copy" data-copy-href="#dl-windows-arm64-exe" aria-label="Copy Windows arm64 installer link">Copy</button></li>
+              <li class="download-row"><a id="dl-windows-arm64-zip" href="https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-windows-arm64.zip">arm64 · .zip <span>↗</span></a><button class="copy" data-copy-href="#dl-windows-arm64-zip" aria-label="Copy Windows arm64 zip link">Copy</button></li>
+            </ul>
+            <p class="platform-note">The installer offers a custom install directory; the zip is fully portable.</p>
+          </article>
+
+          <article class="platform-card">
+            <div class="platform-head"><span class="platform-icon">◉</span><div><h3>Ubuntu / Snap</h3><p>Confined and auto-updating</p></div></div>
+            <ul class="download-list">
+              <li class="download-row"><a id="dl-snap" href="https://snapcraft.io/cinnamon-tasks">Snap Store: cinnamon-tasks <span>↗</span></a><button class="copy" data-copy-href="#dl-snap" aria-label="Copy Snap Store link">Copy</button></li>
+            </ul>
+            <pre><code id="cmd-snap-download">sudo snap install cinnamon-tasks</code></pre>
+            <p class="platform-note"><button class="copy" data-copy="#cmd-snap-download" aria-label="Copy snap install command">Copy command</button></p>
+          </article>
+
+          <article class="platform-card">
+            <div class="platform-head"><span class="platform-icon">⌘</span><div><h3>Everywhere else</h3><p>npm, terminal and source</p></div></div>
+            <ul class="download-list">
+              <li class="download-row"><a id="dl-npm-gui" href="https://www.npmjs.com/package/cinnamon-gui">npm: cinnamon-gui <span>↗</span></a><button class="copy" data-copy-href="#dl-npm-gui" aria-label="Copy launcher package link">Copy</button></li>
+              <li class="download-row"><a id="dl-npm-cli" href="https://www.npmjs.com/package/cinnamon-cli">npm: cinnamon-cli <span>↗</span></a><button class="copy" data-copy-href="#dl-npm-cli" aria-label="Copy CLI package link">Copy</button></li>
+              <li class="download-row"><a id="dl-pi-apps" href="https://github.com/Botspot/pi-apps/pull/3085">Pi-Apps <span>↗</span></a><button class="copy" data-copy-href="#dl-pi-apps" aria-label="Copy Pi-Apps link">Copy</button></li>
+              <li class="download-row"><a id="dl-source" href="https://github.com/404henryyynotfound/cinnamon">Source code <span>↗</span></a><button class="copy" data-copy-href="#dl-source" aria-label="Copy source link">Copy</button></li>
+            </ul>
+            <pre><code id="cmd-launcher-download">npm install -g cinnamon-gui</code></pre>
+            <p class="platform-note"><button class="copy" data-copy="#cmd-launcher-download" aria-label="Copy launcher install command">Copy launcher command</button> · The launcher picks and verifies the right archive automatically.</p>
+          </article>
+
+          <article class="platform-card">
+            <div class="platform-head"><span class="platform-icon">≡</span><div><h3>From a terminal</h3><p>cinnamon-cli, offline and dependency-free</p></div></div>
+            <pre><code id="cmd-cli-download">npm install -g cinnamon-cli
+cinnamon-cli ps --sort cpu --limit 10
+cinnamon-cli report --format markdown
+cinnamon-cli kill 4242 SIGTERM --yes</code></pre>
+            <p class="platform-note"><button class="copy" data-copy="#cmd-cli-download" aria-label="Copy CLI commands">Copy commands</button> · Reads <code>/proc</code> on Linux and safely parses <code>ps</code> elsewhere. Signal operations require <code>--yes</code>.</p>
           </article>
         </div>
       </div>
@@ -118,7 +197,7 @@ sudo apt install ./cinnamon.deb</code></pre>
       </div>
     </section>
 
-    <section class="section" id="download">
+    <section class="section" id="resources">
       <div class="wrap download">
         <div>
           <p class="kicker">Ready when you are</p>
@@ -137,7 +216,7 @@ sudo apt install ./cinnamon.deb</code></pre>
   <footer>
     <div class="wrap footer-inner">
       <a class="brand" href="#top"><span class="brand-mark">C</span> cinnamon</a>
-      <nav aria-label="Footer"><a href="#install">Install</a><a href="#features">Features</a><a href="https://github.com/404henryyynotfound/cinnamon/releases/latest">Releases</a></nav>
+      <nav aria-label="Footer"><a href="#install">Install</a><a href="#download">Download</a><a href="#features">Features</a><a href="https://github.com/404henryyynotfound/cinnamon/releases/latest">Releases</a></nav>
       <p>© 2026 cinnamon. Built for people who like to know.</p>
     </div>
   </footer>
