@@ -5,9 +5,8 @@ artifactName: cinnamon-${os}-${arch}.${ext}
 copyright: Copyright © 2026 cinnamon contributors
 extraMetadata:
   description: cinnamon — a local-first computer task manager with live processes, graphs and local AI diagnostics
-# Builds are uploaded to GitHub releases by release.yml with the gh CLI,
-# never by electron-builder itself.
-publish: never
+# Builds are uploaded to GitHub releases by release.yml with the gh CLI;
+# every workflow invocation passes `--publish never` to electron-builder.
 directories:
   output: dist
 files:
