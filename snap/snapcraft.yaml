@@ -1,0 +1,98 @@
+name: cinnamon-tasks
+base: core22
+version: '1.0.0'
+summary: Local-first task manager with explainable AI
+description: |
+  cinnamon is a local-first desktop task manager with an explainable offline
+  AI, optional bring-your-own-key cloud AI, SVG analytics and automations
+  called processes. No account is required and task data stays on your device.
+icon: snap/local/icon.png
+grade: stable
+confinement: strict
+architectures:
+  - build-on: amd64
+    build-for: amd64
+  - build-on: arm64
+    build-for: arm64
+
+apps:
+  cinnamon-tasks:
+    command: bin/cinnamon-tasks
+    desktop: usr/share/applications/cinnamon-tasks.desktop
+    plugs:
+      - desktop
+      - desktop-legacy
+      - home
+      - removable-media
+      - network
+      - network-bind
+      - opengl
+      - wayland
+      - x11
+      - pulseaudio
+      - browser-support
+
+parts:
+  gui:
+    plugin: nil
+    source: .
+    build-packages:
+      - curl
+      - ca-certificates
+    stage-packages:
+      - libgtk-3-0
+      - libnotify4
+      - libnss3
+      - libgbm1
+      - libasound2
+      - libxss1
+      - libxkbcommon0
+      - libxrandr2
+      - libxdamage1
+      - libxfixes3
+      - libxcomposite1
+      - libatk1.0-0
+      - libatk-bridge2.0-0
+      - libcups2
+      - libdrm2
+      - libpango-1.0-0
+      - libcairo2
+      - fonts-liberation
+    override-build: |
+      set -e
+      version="${CRAFT_PROJECT_VERSION:-1.0.0}"
+      case "$CRAFT_TARGET_ARCH" in
+        amd64) asset_arch=x64 ;;
+        arm64) asset_arch=arm64 ;;
+        *) echo "Unsupported target architecture: $CRAFT_TARGET_ARCH" >&2; exit 1 ;;
+      esac
+      asset="cinnamon-linux-${asset_arch}.tar.gz"
+      if [ -f "${CRAFT_PART_SRC}/dist/${asset}" ]; then
+        cp "${CRAFT_PART_SRC}/dist/${asset}" "${CRAFT_PART_BUILD}/${asset}"
+        if [ -f "${CRAFT_PART_SRC}/dist/${asset}.sha256" ]; then
+          cp "${CRAFT_PART_SRC}/dist/${asset}.sha256" "${CRAFT_PART_BUILD}/${asset}.sha256"
+          (cd "$CRAFT_PART_BUILD" && sha256sum -c "${asset}.sha256")
+        fi
+      else
+        base="https://github.com/404henryyynotfound/cinnamon/releases/download/v${version}"
+        curl -fsSL "${base}/${asset}" -o "${CRAFT_PART_BUILD}/${asset}"
+        curl -fsSL "${base}/${asset}.sha256" -o "${CRAFT_PART_BUILD}/${asset}.sha256"
+        (cd "$CRAFT_PART_BUILD" && sha256sum -c "${asset}.sha256")
+      fi
+      mkdir -p "${CRAFT_PART_INSTALL}/opt/cinnamon"
+      tar -xzf "${CRAFT_PART_BUILD}/${asset}" --strip-components=1 \
+        -C "${CRAFT_PART_INSTALL}/opt/cinnamon"
+      chmod +x "${CRAFT_PART_INSTALL}/opt/cinnamon/cinnamon"
+
+  wrappers:
+    plugin: dump
+    source: snap/local/wrappers
+    organize:
+      cinnamon-tasks: bin/cinnamon-tasks
+
+  desktop-file:
+    plugin: dump
+    source: snap/local/desktop
+    organize:
+      cinnamon-tasks.desktop: usr/share/applications/cinnamon-tasks.desktop
+      icon.png: meta/gui/icon.png

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=cinnamon
+Comment=Local-first AI task manager
+Exec=cinnamon-tasks
+Icon=${SNAP}/meta/gui/icon.png
+Terminal=false
+Type=Application
+Categories=Office;ProjectManagement;Utility;
+Keywords=tasks;todo;productivity;ai;
+StartupNotify=true

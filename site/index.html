@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cinnamon — know what your computer is doing</title>
+  <meta name="description" content="cinnamon is a local-first computer task manager: live processes, safe kill and renice controls, performance graphs, AI diagnostics, watchers and changelogs.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="cinnamon home"><span class="brand-mark">C</span> cinnamon</a>
+      <button class="nav-toggle" data-nav-toggle aria-expanded="false" aria-label="Open navigation"><span></span><span></span><span></span></button>
+      <nav id="primary-nav" data-nav aria-label="Primary">
+        <a href="#install">Install</a>
+        <a href="#features">Features</a>
+        <a href="#changelog">Changelog</a>
+        <a href="#download">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="kicker"><span class="dot"></span> A computer task manager</p>
+          <h1>Know exactly what your <span class="accent">computer is doing</span></h1>
+          <p class="lede">cinnamon puts every process, every resource graph, and every smart suggestion in one calm, fast window. Inspect it, understand it, and take control — safely.</p>
+          <div class="actions">
+            <a class="btn primary" href="#install">Get cinnamon <span aria-hidden="true">→</span></a>
+            <a class="btn ghost" href="#features">See what it does</a>
+          </div>
+          <p class="note">Local-first. No account. No telemetry.</p>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="window">
+            <div class="window-bar"><span class="lights"><i></i><i></i><i></i></span><span>cinnamon · overview</span></div>
+            <div class="window-body">
+              <div class="stat-row">
+                <div class="stat"><span>CPU</span><strong data-stat="cpu">18%</strong><svg viewBox="0 0 120 34" data-spark="cpu"></svg></div>
+                <div class="stat"><span>MEM</span><strong data-stat="mem">5.2 GB</strong><svg viewBox="0 0 120 34" data-spark="mem"></svg></div>
+                <div class="stat"><span>NET</span><strong data-stat="net">1.4 MB/s</strong><svg viewBox="0 0 120 34" data-spark="net"></svg></div>
+              </div>
+              <div class="fake-table">
+                <div class="fake-head"><span>PROCESS</span><span>CPU</span><span>MEM</span></div>
+                <div class="fake-row"><span>browser</span><span>12.4%</span><span>1.1 GB</span></div>
+                <div class="fake-row"><span>node</span><span>6.1%</span><span>284 MB</span></div>
+                <div class="fake-row"><span>gnome-shell</span><span>3.8%</span><span>190 MB</span></div>
+              </div>
+              <div class="ai-note"><span class="ai-badge">AI</span> A runaway <b>node</b> process has used 3× its normal CPU for 10 minutes.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Get started</p>
+          <h2>Install it your way</h2>
+          <p>One app, three package managers. Every download comes from a public GitHub release.</p>
+        </div>
+        <div class="install-grid">
+          <article class="cmd-card">
+            <div class="cmd-head"><span class="badge">npm</span><button class="copy" data-copy="#cmd-npm" aria-label="Copy npm command">Copy</button></div>
+            <pre><code id="cmd-npm">npm install -g cinnamon-gui</code></pre>
+            <p>Then run <code>cinnamon</code>. The launcher verifies checksums for you.</p>
+          </article>
+          <article class="cmd-card">
+            <div class="cmd-head"><span class="badge">apt</span><button class="copy" data-copy="#cmd-apt" aria-label="Copy apt commands">Copy</button></div>
+            <pre><code id="cmd-apt">curl -fsSL https://github.com/404henryyynotfound/cinnamon/releases/latest/download/cinnamon-linux-x64.deb -o cinnamon.deb
+sudo apt install ./cinnamon.deb</code></pre>
+            <p>Use <code>arm64</code> instead of <code>x64</code> on a Raspberry Pi.</p>
+          </article>
+          <article class="cmd-card">
+            <div class="cmd-head"><span class="badge">snap</span><button class="copy" data-copy="#cmd-snap" aria-label="Copy snap command">Copy</button></div>
+            <pre><code id="cmd-snap">sudo snap install cinnamon-tasks</code></pre>
+            <p>Strictly confined and auto-updating through Ubuntu App Center.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">More than a task manager</p>
+          <h2>Everything happening on your machine</h2>
+        </div>
+        <div class="feature-grid">
+          <article><span class="icon">▤</span><h3>Live processes</h3><p>Sortable, searchable process table with CPU, memory, uptime and command line — refreshed automatically.</p></article>
+          <article><span class="icon">⏻</span><h3>Take control</h3><p>Inspect details, kill with SIGTERM/SIGKILL, or renice any process. Every action asks for confirmation first.</p></article>
+          <article><span class="icon">◈</span><h3>Real-time graphs</h3><p>Inline SVG charts for CPU, memory, disk and network, plus per-process breakdowns and activity heatmaps.</p></article>
+          <article><span class="icon">✦</span><h3>Explainable AI</h3><p>Local diagnostics rank findings with evidence: runaway processes, memory pressure, disk pressure and zombies.</p></article>
+          <article><span class="icon">☁</span><h3>Optional BYOK AI</h3><p>Add your own OpenAI-compatible endpoint in Settings. Your key stays on your device; local AI is the fallback.</p></article>
+          <article><span class="icon">◉</span><h3>Watchers</h3><p>Set thresholds for any process or resource and keep an alert log. No daemon, no account, no cloud.</p></article>
+          <article><span class="icon">≡</span><h3>Two changelogs</h3><p>Read bundled release notes in the app, or pull the latest GitHub releases with one click.</p></article>
+          <article><span class="icon">⌘</span><h3>Fast by keyboard</h3><p>Command palette, quick search and shortcuts keep your hands on the keyboard.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="changelog">
+      <div class="wrap changelog-wrap">
+        <div class="section-head">
+          <p class="kicker">Always in the loop</p>
+          <h2>Changelogs, in app and on GitHub</h2>
+          <p>The bundled notes work offline. The GitHub tab fetches public releases on demand.</p>
+        </div>
+        <div class="release" id="release-list"><p class="loading">Loading recent releases…</p></div>
+        <p class="changelog-foot"><a href="https://github.com/404henryyynotfound/cinnamon/blob/main/CHANGELOG.md">Read the full CHANGELOG.md →</a></p>
+      </div>
+    </section>
+
+    <section class="section" id="download">
+      <div class="wrap download">
+        <div>
+          <p class="kicker">Ready when you are</p>
+          <h2>Take a look under the hood</h2>
+          <p>Source, builds and checksums are public. Pi-Apps definitions are available for Raspberry Pi users.</p>
+        </div>
+        <div class="download-links">
+          <a href="https://github.com/404henryyynotfound/cinnamon/releases/latest">Latest release <span>↗</span></a>
+          <a href="https://github.com/404henryyynotfound/cinnamon">Source code <span>↗</span></a>
+          <a href="https://github.com/Botspot/pi-apps/pull/3085">Pi-Apps PR <span>↗</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <a class="brand" href="#top"><span class="brand-mark">C</span> cinnamon</a>
+      <nav aria-label="Footer"><a href="#install">Install</a><a href="#features">Features</a><a href="https://github.com/404henryyynotfound/cinnamon/releases/latest">Releases</a></nav>
+      <p>© 2026 cinnamon. Built for people who like to know.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,42 @@
+appId: com.cinnamon.app
+productName: cinnamon
+executableName: cinnamon
+artifactName: cinnamon-${os}-${arch}.${ext}
+copyright: Copyright © 2026 cinnamon contributors
+directories:
+  output: dist
+files:
+  - main.js
+  - preload.js
+  - package.json
+  - lib/**/*
+  - ui/**/*
+  - "!test/**/*"
+  - "!node_modules/**/*"
+  - "!dist/**/*"
+npmRebuild: false
+linux:
+  target:
+    - target: tar.gz
+      arch:
+        - x64
+        - arm64
+    - target: deb
+      arch:
+        - x64
+        - arm64
+  category: Utility
+  maintainer: cinnamon contributors
+  description: Local-first desktop task manager with explainable local AI
+mac:
+  target:
+    - dmg
+    - zip
+  category: Productivity
+win:
+  target:
+    - nsis
+    - zip
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

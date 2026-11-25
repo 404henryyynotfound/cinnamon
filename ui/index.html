@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>cinnamon — computer task manager</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">c</span>
+        <div class="brand-copy">
+          <strong>cinnamon</strong>
+          <small>computer task manager</small>
+        </div>
+      </div>
+      <nav id="nav" class="nav" aria-label="Main navigation"></nav>
+      <div class="sidebar-footer">
+        <div class="live-indicator" id="live-indicator"><span class="live-dot"></span><span id="live-label">Waiting for first sample…</span></div>
+        <button class="side-button" data-action="toggle-theme" title="Toggle theme (Ctrl+Shift+T)">
+          <span class="side-icon">◐</span><span id="theme-label">Light theme</span>
+        </button>
+        <div class="privacy-dot"><span></span> Local-first · no telemetry</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-copy">
+          <h1 id="view-title">Overview</h1>
+          <p id="view-subtitle">A calm view of what your computer is doing.</p>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-subtle" data-action="refresh" title="Refresh now (Ctrl+Shift+R)">↻ <span>Refresh</span></button>
+          <button class="btn btn-ghost palette-trigger" data-action="palette" title="Command palette (Ctrl+K)">⌕ <kbd>Ctrl K</kbd></button>
+        </div>
+      </header>
+      <div id="view" class="view" tabindex="-1"></div>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
+  <input id="import-file" type="file" accept="application/json,.json" hidden>
+
+  <script src="app.js"></script>
+</body>
+</html>
