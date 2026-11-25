@@ -34,6 +34,8 @@ test('parseChangelog reads the bundled 1.0.0 Keep-a-Changelog file', () => {
   assert.ok(releases[0].items.some((item) => /BYOK/i.test(item.text)));
   assert.ok(releases[0].items.some((item) => /SVG/i.test(item.text)));
   assert.ok(releases[0].items.some((item) => /watch rules/i.test(item.text)));
+  assert.ok(releases[0].items.some((item) => /pinned processes/i.test(item.text)));
+  assert.ok(releases[0].items.some((item) => /CSV/i.test(item.text)));
   assert.ok(releases.intro.includes('Keep a Changelog'));
   assert.equal(releases[0].source, 'bundled');
 });

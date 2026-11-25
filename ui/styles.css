@@ -240,7 +240,9 @@ kbd { font-family: inherit; font-size: 10px; padding: 1px 5px; border-radius: 5p
 .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; background: var(--green); }
 .status-dot.failed { background: var(--red); }
 .status-dot.warn { background: var(--amber); }
-.row-actions { display: flex; gap: 5px; justify-content: flex-end; }
+.row-actions { display: flex; gap: 5px; justify-content: flex-end; flex-wrap: wrap; }
+.tree-name { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+.tree-caret { color: var(--muted); font-family: var(--mono); }
 
 .chip {
   display: inline-flex; align-items: center; gap: 4px;

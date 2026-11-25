@@ -10,6 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Live process table with sorting, search, CPU, memory, uptime, state and full command line, refreshed on a configurable interval.
 - Safe process actions: `SIGTERM`, `SIGKILL`, `SIGINT`, `SIGSTOP` and `SIGCONT`, plus `renice`, with confirmation metadata and a persistent action log.
+- Expanded process controls: named `pause`, `resume`, `interrupt`, `terminate`, `kill` and `setPriority` operations, Linux `/proc/<pid>/fd` open-file inspection, a flat/tree toggle and pinned processes that stay visible across refreshes.
+- Pure process reports serialized as JSON, CSV and Markdown with top CPU/memory, groups by user and state, totals and local AI findings; current-table exports are available from the Processes view and command palette.
 - Inline SVG performance graphs for CPU, memory, disk and network history, process bars, a memory donut and a weekday/hour activity heatmap.
 - Explainable local AI diagnostics that rank findings such as CPU hogs, runaway processes, memory and disk pressure, network spikes, zombie processes and long uptime, with evidence and suggested actions.
 - Optional BYOK AI second opinion using any OpenAI-compatible endpoint, with strict JSON responses, a 10 second timeout and automatic fallback to local diagnostics.
@@ -19,7 +21,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- All data is stored locally in a single atomic JSON file; no account, telemetry or background network calls are required.
+- All data is stored locally in a single atomic JSON file; pinned processes are included in backup/import and merge without duplicates, and no account, telemetry or background network calls are required.
 - System sampling and all parsing/analysis logic are pure and testable without Electron, using only Node built-ins.
 - The renderer communicates with Electron exclusively through an allow-listed `contextBridge` IPC surface.
 

@@ -28,7 +28,24 @@ const api = Object.freeze({
   actions: Object.freeze({
     signal: (pid, signal) => invoke(INVOKE.ACTIONS_SIGNAL, { pid, signal }),
     priority: (pid, niceness) => invoke(INVOKE.ACTIONS_PRIORITY, { pid, niceness }),
-    details: (pid) => invoke(INVOKE.ACTIONS_DETAILS, { pid })
+    setPriority: (pid, niceness) => invoke(INVOKE.ACTIONS_SET_PRIORITY, { pid, niceness }),
+    pause: (pid) => invoke(INVOKE.ACTIONS_PAUSE, { pid }),
+    resume: (pid) => invoke(INVOKE.ACTIONS_RESUME, { pid }),
+    interrupt: (pid) => invoke(INVOKE.ACTIONS_INTERRUPT, { pid }),
+    terminate: (pid) => invoke(INVOKE.ACTIONS_TERMINATE, { pid }),
+    kill: (pid) => invoke(INVOKE.ACTIONS_KILL, { pid }),
+    confirmation: (operation, target) => invoke(INVOKE.ACTIONS_CONFIRMATION, { operation, target }),
+    details: (pid) => invoke(INVOKE.ACTIONS_DETAILS, { pid }),
+    openFiles: (pid) => invoke(INVOKE.ACTIONS_OPEN_FILES, { pid }),
+    tree: () => invoke(INVOKE.ACTIONS_TREE)
+  }),
+  reports: Object.freeze({
+    export: (format = 'json', options = {}) => invoke(INVOKE.REPORTS_EXPORT, { format, ...options })
+  }),
+  pins: Object.freeze({
+    list: () => invoke(INVOKE.PINS_LIST),
+    add: (pid, meta = {}) => invoke(INVOKE.PINS_ADD, { pid, meta }),
+    remove: (pid) => invoke(INVOKE.PINS_REMOVE, { pid })
   }),
   ai: Object.freeze({
     analyze: (payload = {}) => invoke(INVOKE.AI_ANALYZE, payload),

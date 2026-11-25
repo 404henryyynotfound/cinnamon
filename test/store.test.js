@@ -146,3 +146,44 @@ test('normalizeState drops invalid entries and reset can skip seeding', () => {
   assert.equal(store.reset({ seed: false }).watchRules.length, 0);
   assert.ok(store.reset().watchRules.length > 0);
 });
+
+test('pinned processes persist, normalize and merge without duplicates', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cinnamon-pins-'));
+  const file = path.join(dir, 'cinnamon-data.json');
+  try {
+    const store = new Store({ filePath: file, seed: false, now: () => NOW, debounceMs: 0 });
+    assert.deepEqual(store.listPinned(), []);
+    store.pinProcess(123, { name: 'worker', note: 'keep an eye on this' });
+    store.flush();
+
+    const reloaded = new Store({ filePath: file, seed: false, now: () => NOW, debounceMs: 0 });
+    assert.equal(reloaded.isPinned('123'), true);
+    assert.deepEqual(reloaded.listPinned(), [{
+      pid: 123,
+      name: 'worker',
+      note: 'keep an eye on this',
+      pinnedAt: NOW.toISOString()
+    }]);
+    assert.equal(reloaded.unpinProcess(123), true);
+    assert.equal(reloaded.unpinProcess(123), false);
+    assert.equal(reloaded.isPinned(123), false);
+
+    const imported = reloaded.importJSON({
+      pinnedProcesses: [{ pid: 123, name: 'worker' }, { pid: -1 }, { pid: 123, name: 'duplicate' }]
+    }, { mode: 'merge' });
+    assert.equal(imported.pinned, 1);
+    assert.equal(reloaded.isPinned(123), true);
+    assert.deepEqual(reloaded.listPinned().map((entry) => entry.pid), [123]);
+
+    const normalized = normalizeState({
+      pinnedProcesses: [{ pid: '12', name: 'one' }, { pid: 12, name: 'two' }, { pid: 0 }]
+    }, NOW);
+    assert.deepEqual(normalized.pinnedProcesses.map((entry) => entry.pid), [12]);
+    assert.equal(normalized.pinnedProcesses[0].name, 'one');
+    assert.throws(() => memory().pinProcess(0), /positive integer/);
+    reloaded.destroy();
+    store.destroy();
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

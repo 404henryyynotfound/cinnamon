@@ -44,6 +44,9 @@
     compareAfter: '',
     processQuery: '',
     processSort: 'cpu',
+    processView: 'flat',
+    processTree: [],
+    pinned: [],
     changelogTab: 'inapp',
     bundled: null,
     github: null,
@@ -137,24 +140,28 @@
   }
 
   async function loadCore() {
-    const [snapshot, processes, history, settings, info, rules, alerts, actionLog] = await Promise.all([
+    const [snapshot, processes, tree, history, settings, info, rules, alerts, actionLog, pinned] = await Promise.all([
       call(() => api.system.snapshot(), null),
       call(() => api.system.processes(), []),
+      call(() => api.actions.tree(), []),
       call(() => api.system.history(), { samples: [] }),
       call(() => api.settings.get(), {}),
       call(() => api.system.info(), null),
       call(() => api.rules.list(), []),
       call(() => api.alerts.list(100), []),
-      call(() => api.log.actions(100), [])
+      call(() => api.log.actions(100), []),
+      call(() => api.pins.list(), [])
     ]);
     state.snapshot = snapshot || state.snapshot;
     state.processes = processes || [];
+    state.processTree = tree || [];
     state.history = history || { samples: [] };
     state.settings = settings || {};
     state.info = info;
     state.rules = rules || [];
     state.alerts = alerts || [];
     state.actionLog = actionLog || [];
+    state.pinned = pinned || [];
     state.analysis = await call(() => api.ai.analyze(), null);
     state.analytics = await call(() => api.analytics.all(), null);
     applyTheme();
@@ -374,30 +381,108 @@
       .sort((a, b) => num(b[key]) - num(a[key]) || num(a.pid) - num(b.pid));
   }
 
+  // Local mirror of the main-process tree so live updates render without a round trip.
+  function buildProcessTree(list) {
+    const nodes = new Map();
+    for (const proc of Array.isArray(list) ? list : []) {
+      const pid = Number(proc.pid);
+      if (!Number.isInteger(pid) || pid <= 0) continue;
+      nodes.set(pid, { ...proc, pid, ppid: Number(proc.ppid) || 0, children: [] });
+    }
+    const roots = [];
+    for (const node of nodes.values()) {
+      const parent = nodes.get(node.ppid);
+      if (parent && parent !== node) parent.children.push(node);
+      else roots.push(node);
+    }
+    const sort = (items) => {
+      items.sort((a, b) => num(b.cpu) - num(a.cpu) || a.pid - b.pid);
+      for (const item of items) sort(item.children);
+    };
+    sort(roots);
+    return roots;
+  }
+
+  const PROCESS_HEADER = `<thead><tr>
+    <th>Process</th><th class="num">CPU</th><th class="num">Memory</th><th>User</th><th class="num">Uptime</th><th>State</th><th class="num">PID</th><th></th>
+  </tr></thead>`;
+
+  function processRowHTML(proc, depth = 0) {
+    const pid = Number(proc.pid);
+    const pinned = state.pinned.some((entry) => entry.pid === pid);
+    const stateClass = String(proc.state || '').toUpperCase().startsWith('Z') ? 'warning' : 'low';
+    return `<tr>
+      <td><div class="tree-name" style="padding-left:${depth * 16}px">${depth ? '<span class="tree-caret">└</span>' : ''}<span class="name">${esc(proc.name)}</span></div>${proc.command ? `<div class="cmd mono" title="${esc(proc.command)}">${esc(proc.command)}</div>` : ''}</td>
+      <td class="num">${pct(proc.cpu)}</td>
+      <td class="num">${bytes(proc.memoryBytes)}<div class="muted tiny">${pct(proc.memory)}</div></td>
+      <td class="tiny">${esc(proc.user || '—')}</td>
+      <td class="num">${esc(uptime(proc.uptime))}</td>
+      <td><span class="chip chip-${stateClass}">${esc(proc.state)}</span></td>
+      <td class="num mono">${esc(pid)}</td>
+      <td><div class="row-actions">
+        <button class="btn btn-small btn-subtle" data-action="proc-details" data-pid="${esc(pid)}" title="Inspect details">Details</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-open-files" data-pid="${esc(pid)}" title="Inspect open files (Linux)">Files</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-pause" data-pid="${esc(pid)}" title="Pause (SIGSTOP)">Pause</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-resume" data-pid="${esc(pid)}" title="Resume (SIGCONT)">Resume</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-priority" data-pid="${esc(pid)}" title="Set niceness">Priority</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-action" data-operation="interrupt" data-pid="${esc(pid)}" title="Interrupt (SIGINT)">Interrupt</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-pin" data-pid="${esc(pid)}" title="${pinned ? 'Stop following' : 'Follow this process'}">${pinned ? 'Unpin' : 'Pin'}</button>
+        <button class="btn btn-small btn-subtle" data-action="proc-action" data-operation="terminate" data-pid="${esc(pid)}" title="Ask to stop (SIGTERM)">Stop</button>
+        <button class="btn btn-small btn-danger" data-action="proc-action" data-operation="kill" data-pid="${esc(pid)}" title="Force stop (SIGKILL)">Kill</button>
+      </div></td>
+    </tr>`;
+  }
+
+  function visibleProcessTree() {
+    const roots = state.processTree && state.processTree.length ? state.processTree : buildProcessTree(state.processes);
+    const query = state.processQuery.trim().toLowerCase();
+    if (!query) return roots;
+    const matches = (proc) => `${proc.name} ${proc.pid} ${proc.user} ${proc.command}`.toLowerCase().includes(query);
+    const filter = (nodes) => nodes.map((node) => {
+      const children = filter(node.children || []);
+      return matches(node) || children.length ? { ...node, children } : null;
+    }).filter(Boolean);
+    return filter(roots);
+  }
+
   function processTableHTML() {
+    if (state.processView === 'tree') {
+      const roots = visibleProcessTree();
+      if (!roots.length) return '<div class="empty">No processes match this filter.</div>';
+      const renderNodes = (nodes, depth) => nodes.slice(0, 250).map((node) => processRowHTML(node, depth) + renderNodes(node.children || [], depth + 1)).join('');
+      return `<div class="table-wrap"><table class="table">${PROCESS_HEADER}<tbody>${renderNodes(roots, 0)}</tbody></table></div>
+        <div class="muted tiny" style="padding:10px">Tree view groups processes by parent PID. Use the flat view for the full sortable table.</div>`;
+    }
+
     const list = sortedProcesses();
     if (!list.length) return '<div class="empty">No processes match this filter.</div>';
-    return `<div class="table-wrap"><table class="table">
-      <thead><tr>
-        <th>Process</th><th class="num">CPU</th><th class="num">Memory</th><th>User</th><th class="num">Uptime</th><th>State</th><th class="num">PID</th><th></th>
-      </tr></thead>
-      <tbody>${list.slice(0, 250).map((proc) => `<tr>
-        <td><span class="name">${esc(proc.name)}</span>${proc.command ? `<div class="cmd mono" title="${esc(proc.command)}">${esc(proc.command)}</div>` : ''}</td>
-        <td class="num">${pct(proc.cpu)}</td>
-        <td class="num">${bytes(proc.memoryBytes)}<div class="muted tiny">${pct(proc.memory)}</div></td>
-        <td class="tiny">${esc(proc.user || '—')}</td>
-        <td class="num">${esc(uptime(proc.uptime))}</td>
-        <td><span class="chip chip-${String(proc.state || '').toUpperCase().startsWith('Z') ? 'warning' : 'low'}">${esc(proc.state)}</span></td>
-        <td class="num mono">${esc(proc.pid)}</td>
-        <td><div class="row-actions">
-          <button class="btn btn-small btn-subtle" data-action="proc-details" data-pid="${esc(proc.pid)}" title="Inspect details">Details</button>
-          <button class="btn btn-small btn-subtle" data-action="proc-action" data-pid="${esc(proc.pid)}" data-signal="priority" data-nice="10" title="Lower priority">Nice +10</button>
-          <button class="btn btn-small btn-subtle" data-action="proc-action" data-pid="${esc(proc.pid)}" data-signal="SIGTERM" title="Ask to stop">Stop</button>
-          <button class="btn btn-small btn-danger" data-action="proc-action" data-pid="${esc(proc.pid)}" data-signal="SIGKILL" title="Force stop">Kill</button>
-        </div></td>
-      </tr>`).join('')}</tbody>
+    return `<div class="table-wrap"><table class="table">${PROCESS_HEADER}
+      <tbody>${list.slice(0, 250).map((proc) => processRowHTML(proc)).join('')}</tbody>
     </table></div>
     ${list.length > 250 ? `<div class="muted tiny" style="padding:10px">Showing the first 250 of ${esc(list.length)} processes.</div>` : ''}`;
+  }
+
+  function renderPinned() {
+    if (!state.pinned.length) {
+      return '<div class="empty">No pinned processes yet. Use <strong>Pin</strong> in the table to follow one across refreshes.</div>';
+    }
+    return `<div class="table-wrap"><table class="table">
+      <thead><tr><th>Followed process</th><th class="num">PID</th><th>Pinned</th><th>Live status</th><th></th></tr></thead>
+      <tbody>${state.pinned.map((entry) => {
+        const live = state.processes.find((proc) => proc.pid === entry.pid);
+        return `<tr>
+          <td><span class="name">${esc(entry.name || `PID ${entry.pid}`)}</span>${entry.note ? `<div class="muted tiny">${esc(entry.note)}</div>` : ''}</td>
+          <td class="num mono">${esc(entry.pid)}</td>
+          <td class="tiny">${esc(time(entry.pinnedAt))}</td>
+          <td class="tiny">${live ? `${pct(live.cpu)} · ${bytes(live.memoryBytes)} · ${esc(live.state)}` : '<span class="chip chip-warning">not running</span>'}</td>
+          <td><div class="row-actions">
+            ${live ? `<button class="btn btn-small btn-subtle" data-action="proc-details" data-pid="${esc(entry.pid)}">Details</button>
+              <button class="btn btn-small btn-subtle" data-action="proc-resume" data-pid="${esc(entry.pid)}">Resume</button>` : ''}
+            <button class="btn btn-small btn-danger" data-action="proc-unpin" data-pid="${esc(entry.pid)}">Unpin</button>
+          </div></td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
   }
 
   function renderProcesses() {
@@ -416,19 +501,33 @@
     return `
       <div class="card">
         <div class="row">
-          <input id="process-search" placeholder="Filter by name, PID, user or command…" value="${esc(state.processQuery)}" style="max-width:360px">
-          <select id="process-sort" style="max-width:180px" aria-label="Sort processes">
+          <input id="process-search" placeholder="Filter by name, PID, user or command…" value="${esc(state.processQuery)}" style="max-width:330px">
+          <select id="process-sort" style="max-width:170px" aria-label="Sort processes">
             ${[['cpu', 'Sort by CPU'], ['memoryBytes', 'Sort by memory'], ['uptime', 'Sort by uptime'], ['pid', 'Sort by PID']]
               .map(([value, label]) => `<option value="${esc(value)}" ${state.processSort === value ? 'selected' : ''}>${esc(label)}</option>`).join('')}
           </select>
+          <div class="segmented" role="group" aria-label="Process layout">
+            <button class="${state.processView === 'flat' ? 'active' : ''}" data-action="process-view" data-layout="flat">Flat</button>
+            <button class="${state.processView === 'tree' ? 'active' : ''}" data-action="process-view" data-layout="tree">Tree</button>
+          </div>
+          <div class="row-wrap">
+            <button class="btn btn-small btn-subtle" data-action="export-report" data-format="csv" title="Download the current processes as CSV">↓ CSV</button>
+            <button class="btn btn-small btn-subtle" data-action="export-report" data-format="markdown" title="Download a Markdown report">↓ Markdown</button>
+          </div>
           <span class="muted tiny">${esc(state.processes.length)} process(es) · actions require confirmation</span>
         </div>
       </div>
 
       <section class="card">
-        <div class="card-head"><div><h2 class="card-title">Running processes</h2><p class="card-sub">Sampled with ps. Signals are allow-listed and logged.</p></div>
+        <div class="card-head"><div><h2 class="card-title">Running processes</h2><p class="card-sub">Sampled with ps. Pause, resume, interrupt, terminate, kill and priority changes are allow-listed and logged.</p></div>
           <button class="btn btn-small btn-subtle" data-action="refresh">↻ Refresh</button></div>
         <div id="process-table-wrap">${processTableHTML()}</div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><div><h2 class="card-title">Pinned / following</h2><p class="card-sub">Keep an eye on specific PIDs even after they disappear from a sample.</p></div>
+          <span class="chip">${esc(state.pinned.length)} pinned</span></div>
+        ${renderPinned()}
       </section>
 
       <div class="grid grid-side">
@@ -441,10 +540,10 @@
           </div>`).join('') : '<div class="empty">No groups available.</div>'}
         </section>
         <section class="card">
-          <div class="card-head"><div><h2 class="card-title">Action log</h2><p class="card-sub">Every signal and priority change is kept locally.</p></div>
+          <div class="card-head"><div><h2 class="card-title">Action log</h2><p class="card-sub">Every operation is kept locally with its outcome.</p></div>
             ${actions.length ? '<button class="btn btn-small btn-subtle" data-action="clear-log">Clear</button>' : ''}</div>
           ${actions.length ? actions.map((entry) => `<div class="result-line">
-            <div class="spread"><strong class="tiny">${esc(entry.action)} · ${esc(entry.name || `PID ${entry.pid || '?'}`)}</strong>
+            <div class="spread"><strong class="tiny">${esc(entry.operation || entry.action)} · ${esc(entry.name || `PID ${entry.pid || '?'}`)}</strong>
               <span class="chip chip-${entry.ok ? 'ok' : 'critical'}">${entry.ok ? 'ok' : 'failed'}</span></div>
             <div class="muted tiny">${esc(entry.message)} · ${esc(time(entry.timestamp))}</div>
           </div>`).join('') : '<div class="empty">No actions recorded.</div>'}
@@ -943,17 +1042,23 @@
     state.confirmAction = null;
   }
 
+  const OPERATION_SIGNALS = Object.freeze({
+    pause: 'SIGSTOP', resume: 'SIGCONT', interrupt: 'SIGINT',
+    terminate: 'SIGTERM', kill: 'SIGKILL', setPriority: 'priority'
+  });
+
   function confirmCopy(signal, target) {
     const label = target && (target.name || `PID ${target.pid}`) || 'this process';
-    if (signal === 'SIGKILL') return { title: 'Force stop process?', message: `Force-stopping ${label} cannot be undone and may lose unsaved work.`, severity: 'danger' };
-    if (signal === 'SIGTERM') return { title: 'Stop process?', message: `Ask ${label} to shut down cleanly.`, severity: 'warning' };
-    if (signal === 'SIGSTOP') return { title: 'Pause process?', message: `${label} will be frozen until it receives SIGCONT.`, severity: 'warning' };
-    if (signal === 'priority') return { title: 'Change priority?', message: `Set niceness for ${label}. Lower values mean higher priority; negative values may need elevated privileges.`, severity: 'warning' };
-    return { title: 'Confirm action', message: `Send ${signal} to ${label}?`, severity: 'info' };
+    if (signal === 'SIGKILL') return { title: 'Force stop process?', message: `Force-stopping ${label} cannot be undone and may lose unsaved work.`, severity: 'danger', requireConfirmation: true };
+    if (signal === 'SIGTERM') return { title: 'Stop process?', message: `Ask ${label} to shut down cleanly.`, severity: 'warning', requireConfirmation: true };
+    if (signal === 'SIGINT') return { title: 'Interrupt process?', message: `Send an interrupt to ${label}; it may ignore the request.`, severity: 'warning', requireConfirmation: true };
+    if (signal === 'SIGSTOP') return { title: 'Pause process?', message: `${label} will be frozen until it receives SIGCONT.`, severity: 'warning', requireConfirmation: true };
+    if (signal === 'SIGCONT') return { title: 'Resume process?', message: `Continue ${label} if it is paused.`, severity: 'info', requireConfirmation: false };
+    if (signal === 'priority') return { title: 'Change priority?', message: `Set niceness for ${label}. Lower values mean higher priority; negative values may need elevated privileges.`, severity: 'warning', requireConfirmation: true };
+    return { title: 'Confirm action', message: `Send ${signal} to ${label}?`, severity: 'info', requireConfirmation: true };
   }
 
-  function confirmAction(signal, target, onConfirm) {
-    const copy = confirmCopy(signal, target);
+  function openConfirmation(copy, onConfirm) {
     state.confirmAction = onConfirm;
     openModal(`<div class="modal-head"><h2>${esc(copy.title)}</h2><button class="btn btn-icon btn-small" data-action="close-modal" title="Close">✕</button></div>
       <div class="modal-body">
@@ -966,18 +1071,39 @@
       </div>`);
   }
 
-  async function runProcessAction(pid, signal, niceness) {
-    const proc = state.processes.find((candidate) => candidate.pid === Number(pid)) || { pid: Number(pid) };
+  function confirmAction(signal, target, onConfirm) {
+    openConfirmation(confirmCopy(signal, target), onConfirm);
+  }
+
+  async function confirmOperation(operation, target, onConfirm) {
+    const fallback = confirmCopy(OPERATION_SIGNALS[operation] || operation, target);
+    const metadata = await call(() => api.actions.confirmation(operation, target), fallback);
+    const copy = metadata && metadata.title ? metadata : fallback;
+    if (copy.requireConfirmation === false) return onConfirm();
+    openConfirmation(copy, onConfirm);
+  }
+
+  async function runOperation(pid, operation, niceness) {
+    const target = Number(pid);
+    const proc = state.processes.find((candidate) => candidate.pid === target) || { pid: target };
     const execute = async () => {
-      const result = signal === 'priority'
-        ? await call(() => api.actions.priority(Number(pid), Number(niceness || 10)), { ok: false, message: 'Priority change failed' })
-        : await call(() => api.actions.signal(Number(pid), signal), { ok: false, message: 'Signal failed' });
+      const result = operation === 'setPriority'
+        ? await call(() => api.actions.setPriority(target, niceness), { ok: false, message: 'Priority change failed' })
+        : await call(() => api.actions[operation] ? api.actions[operation](target) : api.actions.signal(target, OPERATION_SIGNALS[operation]), { ok: false, message: 'Process action failed' });
       toast(result.message || (result.ok ? 'Action completed' : 'Action failed'), result.ok ? 'ok' : 'error');
       closeModal();
       state.actionLog = await call(() => api.log.actions(100), state.actionLog);
+      state.processTree = await call(() => api.actions.tree(), state.processTree);
       render();
     };
-    confirmAction(signal, proc, execute);
+    await confirmOperation(operation, proc, execute);
+  }
+
+  // Legacy alias for callers that still pass a raw signal name.
+  function runProcessAction(pid, signal, niceness) {
+    const normalized = signal === 'priority' ? 'setPriority' : signal;
+    const operation = Object.keys(OPERATION_SIGNALS).find((name) => OPERATION_SIGNALS[name] === normalized) || 'terminate';
+    return runOperation(pid, operation, niceness);
   }
 
   async function showDetails(pid) {
@@ -996,7 +1122,83 @@
           <tr><td>Uptime</td><td>${esc(uptime(proc.uptime))}</td></tr>
         </tbody></table></div>
       </div>
+      <div class="modal-foot">
+        <button class="btn btn-subtle" data-action="proc-open-files" data-pid="${esc(proc.pid)}">Open files</button>
+        <button class="btn btn-subtle" data-action="close-modal">Close</button>
+      </div>`, { wide: true });
+  }
+
+  async function showOpenFiles(pid) {
+    const result = await call(() => api.actions.openFiles(Number(pid)), null);
+    if (!result) return;
+    const files = Array.isArray(result.files) ? result.files : [];
+    openModal(`<div class="modal-head"><h2>Open files · PID ${esc(pid)}</h2><button class="btn btn-icon btn-small" data-action="close-modal">✕</button></div>
+      <div class="modal-body">
+        <p class="muted tiny">${esc(result.message)}</p>
+        ${result.supported ? `<div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th>FD</th><th>Target</th></tr></thead><tbody>
+          ${files.length ? files.map((file) => `<tr><td class="mono">${esc(file.fd)}</td><td class="mono">${esc(file.target || 'unavailable')}</td></tr>`).join('') : '<tr><td colspan="2">No open descriptors.</td></tr>'}
+        </tbody></table></div>${result.truncated ? '<div class="muted tiny" style="margin-top:8px">List truncated.</div>' : ''}` : '<div class="notice">This utility needs Linux /proc and the process must still be running.</div>'}
+      </div>
       <div class="modal-foot"><button class="btn btn-subtle" data-action="close-modal">Close</button></div>`, { wide: true });
+  }
+
+  function openPriorityModal(pid) {
+    const proc = state.processes.find((candidate) => candidate.pid === Number(pid)) || { pid: Number(pid) };
+    openModal(`<div class="modal-head"><h2>Set priority</h2><button class="btn btn-icon btn-small" data-action="close-modal">✕</button></div>
+      <form id="priority-form">
+        <input type="hidden" id="priority-pid" value="${esc(proc.pid)}">
+        <div class="modal-body">
+          <p class="muted tiny">${esc(proc.name || `PID ${proc.pid}`)} · niceness ranges from -20 (highest) to 19 (lowest).</p>
+          <div class="field"><label for="priority-value">Niceness</label><input id="priority-value" type="number" min="-20" max="19" value="10"></div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-subtle" data-action="close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Apply priority</button>
+        </div>
+      </form>`);
+  }
+
+  async function togglePin(pid) {
+    const target = Number(pid);
+    const pinned = state.pinned.some((entry) => entry.pid === target);
+    if (pinned) {
+      await call(() => api.pins.remove(target), false);
+      toast('Process unpinned', 'ok');
+    } else {
+      const proc = state.processes.find((candidate) => candidate.pid === target);
+      await call(() => api.pins.add(target, { name: proc ? proc.name : '' }), null);
+      toast('Process pinned / followed', 'ok');
+    }
+    state.pinned = await call(() => api.pins.list(), state.pinned);
+    render();
+  }
+
+  function flattenTree(nodes) {
+    const rows = [];
+    const visit = (items) => {
+      for (const node of items) {
+        rows.push(node);
+        visit(node.children || []);
+      }
+    };
+    visit(nodes);
+    return rows;
+  }
+
+  // Match the table the user can see: flat sort/filter or the filtered tree.
+  function currentTableProcesses() {
+    if (state.processView === 'tree') return flattenTree(visibleProcessTree()).slice(0, 250);
+    return sortedProcesses().slice(0, 250);
+  }
+
+  async function exportReport(format) {
+    const pids = currentTableProcesses().map((proc) => Number(proc.pid));
+    const text = await call(() => api.reports.export(format, { pids, preserveOrder: true }), null);
+    if (text === null) return;
+    const extension = format === 'csv' ? 'csv' : 'md';
+    const mime = format === 'csv' ? 'text/csv;charset=utf-8' : 'text/markdown;charset=utf-8';
+    downloadText(text, mime, `cinnamon-processes.${extension}`);
+    toast(`Process report exported as ${format}`, 'ok');
   }
 
   function openRuleModal(rule) {
@@ -1040,6 +1242,8 @@
       { id: 'changelog:inapp', icon: '≡', label: 'Changelog: In app', hint: 'Bundled notes', run: () => { state.changelogTab = 'inapp'; setView('changelog'); } },
       { id: 'changelog:github', icon: '↗', label: 'Changelog: GitHub releases', hint: 'Fetch on demand', run: () => { state.changelogTab = 'github'; setView('changelog'); loadGithub(); } },
       { id: 'export', icon: '↓', label: 'Export JSON data', hint: 'Settings', run: exportData },
+      { id: 'export-csv', icon: '↓', label: 'Export processes as CSV', hint: 'Processes', run: () => exportReport('csv') },
+      { id: 'export-markdown', icon: '↓', label: 'Export process report as Markdown', hint: 'Processes', run: () => exportReport('markdown') },
       { id: 'import', icon: '↑', label: 'Import JSON data', hint: 'Settings', run: () => document.getElementById('import-file').click() }
     );
     return commands;
@@ -1097,15 +1301,19 @@
     render();
   }
 
+  function downloadText(text, mime, filename) {
+    const blob = new Blob([text], { type: mime });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
   async function exportData() {
     const json = await call(() => api.data.export(), null);
     if (!json) return;
-    const blob = new Blob([json], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'cinnamon-backup.json';
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    downloadText(json, 'application/json', 'cinnamon-backup.json');
     toast('Backup exported', 'ok');
   }
 
@@ -1164,7 +1372,22 @@
         break;
       case 'toggle-theme': toggleTheme(); break;
       case 'proc-details': showDetails(Number(target.dataset.pid)); break;
-      case 'proc-action': runProcessAction(Number(target.dataset.pid), target.dataset.signal, Number(target.dataset.nice || 10)); break;
+      case 'proc-open-files': showOpenFiles(Number(target.dataset.pid)); break;
+      case 'proc-pause': runOperation(Number(target.dataset.pid), 'pause'); break;
+      case 'proc-resume': runOperation(Number(target.dataset.pid), 'resume'); break;
+      case 'proc-interrupt': runOperation(Number(target.dataset.pid), 'interrupt'); break;
+      case 'proc-priority': openPriorityModal(Number(target.dataset.pid)); break;
+      case 'proc-pin': togglePin(Number(target.dataset.pid)); break;
+      case 'proc-unpin': togglePin(Number(target.dataset.pid)); break;
+      case 'process-view':
+        state.processView = target.dataset.layout === 'tree' ? 'tree' : 'flat';
+        render();
+        break;
+      case 'export-report': exportReport(target.dataset.format); break;
+      case 'proc-action':
+        if (target.dataset.operation) runOperation(Number(target.dataset.pid), target.dataset.operation, Number(target.dataset.nice || 10));
+        else runProcessAction(Number(target.dataset.pid), target.dataset.signal, Number(target.dataset.nice || 10));
+        break;
       case 'clear-log':
         call(() => api.log.clear(), false).then(() => { state.actionLog = []; render(); toast('Action log cleared', 'ok'); });
         break;
@@ -1283,6 +1506,13 @@
         saveSettings(patch);
         break;
       }
+      case 'priority-form': {
+        const pid = Number($('#priority-pid').value);
+        const niceness = Number($('#priority-value').value);
+        if (!Number.isFinite(niceness) || niceness < -20 || niceness > 19) return toast('Niceness must be between -20 and 19', 'error');
+        runOperation(pid, 'setPriority', niceness);
+        break;
+      }
       case 'rule-form': ruleSubmit(); break;
       case 'ask-form': {
         state.askPrompt = $('#ask-prompt').value;
@@ -1363,6 +1593,7 @@
     if (!payload) return;
     state.snapshot = payload.snapshot || state.snapshot;
     state.processes = payload.processes || state.processes;
+    state.processTree = payload.tree || buildProcessTree(state.processes);
     state.history = payload.history || state.history;
     state.analysis = payload.analysis || state.analysis;
     state.alerts = payload.alerts || state.alerts;

@@ -1,11 +1,13 @@
 name: cinnamon-tasks
 base: core22
 version: '1.0.0'
-summary: Local-first task manager with explainable AI
+summary: Computer task manager with live processes and AI
 description: |
-  cinnamon is a local-first desktop task manager with an explainable offline
-  AI, optional bring-your-own-key cloud AI, SVG analytics and automations
-  called processes. No account is required and task data stays on your device.
+  cinnamon shows what is happening on your computer in real time: a live
+  process list with CPU and memory usage, safe pause/resume/kill and renice
+  controls, performance graphs, explainable offline AI diagnostics, optional
+  bring-your-own-key cloud AI, watchers, reports and changelogs. No account
+  is required and your data stays on your device.
 icon: snap/local/icon.png
 grade: stable
 confinement: strict

@@ -22,6 +22,7 @@ const analytics = require('./lib/analytics.js');
 const processesLib = require('./lib/processes.js');
 const changelog = require('./lib/changelog.js');
 const github = require('./lib/github.js');
+const reports = require('./lib/reports.js');
 
 let mainWindow = null;
 let tray = null;
@@ -99,7 +100,7 @@ function sendShortcut(action) {
 function emitUpdate() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send(EVENTS.SYSTEM_UPDATE, {
-      snapshot, processes: processList, history, analysis, alerts
+      snapshot, processes: processList, tree: actions.processTree(processList), history, analysis, alerts
     });
   }
 }
@@ -266,6 +267,33 @@ function bundledChangelog() {
   return { markdown: '# Changelog\n', releases: [], intro: '', source: 'bundled' };
 }
 
+/** Shared IPC path for every named process operation. */
+async function runOperation(operation, payload = {}) {
+  const target = processList.find((proc) => proc.pid === Number(payload.pid));
+  const result = await actions.operate(operation, payload.pid, {
+    niceness: payload.niceness,
+    target: target || { pid: Number(payload.pid) }
+  });
+  store.logAction({ ...result, action: result.operation || result.action, name: target ? target.name : '' });
+  return result;
+}
+
+function currentReport(options = {}) {
+  let processes = processList;
+  if (options && Array.isArray(options.pids)) {
+    const order = options.pids.map(Number).filter((pid) => Number.isInteger(pid) && pid > 0);
+    const byPid = new Map(processList.map((proc) => [Number(proc.pid), proc]));
+    processes = order.map((pid) => byPid.get(pid)).filter(Boolean);
+  }
+  return reports.buildProcessReport({
+    snapshot: snapshot || {},
+    processes,
+    findings: analysis && analysis.findings ? analysis.findings : [],
+    pinned: store.listPinned(),
+    preserveOrder: Boolean(options && options.preserveOrder)
+  });
+}
+
 // ---------------------------------------------------------------------- IPC
 
 function handlers() {
@@ -297,6 +325,28 @@ function handlers() {
       return result;
     },
     [INVOKE.ACTIONS_DETAILS]: (payload) => actions.details(payload.pid),
+
+    [INVOKE.ACTIONS_SET_PRIORITY]: (payload) => runOperation('setPriority', payload),
+    [INVOKE.ACTIONS_PAUSE]: (payload) => runOperation('pause', payload),
+    [INVOKE.ACTIONS_RESUME]: (payload) => runOperation('resume', payload),
+    [INVOKE.ACTIONS_INTERRUPT]: (payload) => runOperation('interrupt', payload),
+    [INVOKE.ACTIONS_TERMINATE]: (payload) => runOperation('terminate', payload),
+    [INVOKE.ACTIONS_KILL]: (payload) => runOperation('kill', payload),
+    [INVOKE.ACTIONS_CONFIRMATION]: (payload) => actions.confirmationFor(
+      payload && payload.operation,
+      payload && payload.target ? payload.target : {}
+    ),
+    [INVOKE.ACTIONS_OPEN_FILES]: (payload) => actions.openFiles(payload && payload.pid),
+    [INVOKE.ACTIONS_TREE]: () => actions.processTree(processList),
+
+    [INVOKE.REPORTS_EXPORT]: (payload = {}) => {
+      const format = String(payload.format || 'json').toLowerCase();
+      if (!reports.FORMATS.includes(format)) throw new Error(`Report format must be one of ${reports.FORMATS.join(', ')}`);
+      return reports.toFormat(currentReport(payload), format);
+    },
+    [INVOKE.PINS_LIST]: () => store.listPinned(),
+    [INVOKE.PINS_ADD]: (payload) => reports.pinProcess(store, payload && payload.pid, payload && payload.meta ? payload.meta : {}),
+    [INVOKE.PINS_REMOVE]: (payload) => reports.unpinProcess(store, payload && payload.pid),
 
     [INVOKE.AI_ANALYZE]: () => analysis || ai.enrich(ai.analyze(snapshot || {}, processList, history), snapshot || {}),
     [INVOKE.AI_SUMMARY]: () => (analysis ? analysis.summary : ai.systemHealthSummary(ai.analyze(snapshot || {}, processList, history), snapshot || {})),
